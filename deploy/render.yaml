@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: fluxo-smart-control
+    env: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DEVICE_ID
+        value: CASA01
+      - key: DEVICE_KEY
+        sync: false

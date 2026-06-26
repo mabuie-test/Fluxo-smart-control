@@ -1,0 +1,20 @@
+{
+  "name": "fluxo-smart-control",
+  "version": "1.0.0",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test ../tests/api/*.test.js",
+    "check": "find src ../tests -name '*.js' -print0 | xargs -0 -n1 node --check"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.18.0"
+  },
+  "devDependencies": {}
+}
