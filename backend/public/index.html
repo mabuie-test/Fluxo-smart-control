@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Painel da Casa</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="/config.js"></script>
+</head>
+<body>
+  <div class="bg"></div>
+
+  <main class="container">
+    <section id="auth" class="auth-card">
+      <p class="eyebrow">Automação residencial</p>
+      <h1>Casa Inteligente</h1>
+      <p>Entre, crie conta ou recupere o acesso para controlar os relés com segurança.</p>
+
+      <div class="tabs">
+        <button type="button" onclick="showAuth('login')">Entrar</button>
+        <button type="button" onclick="showAuth('register')">Criar conta</button>
+        <button type="button" onclick="showAuth('forgot')">Recuperar</button>
+      </div>
+
+      <form id="loginForm" class="auth-form">
+        <input name="email" type="email" placeholder="Email" required />
+        <input name="password" type="password" placeholder="Senha" minlength="8" required />
+        <button>Entrar</button>
+      </form>
+
+      <form id="registerForm" class="auth-form" hidden>
+        <input name="name" placeholder="Nome" required />
+        <input name="email" type="email" placeholder="Email" required />
+        <input name="password" type="password" placeholder="Senha com pelo menos 8 caracteres" minlength="8" required />
+        <button>Criar conta</button>
+      </form>
+
+      <form id="forgotForm" class="auth-form" hidden>
+        <input name="email" type="email" placeholder="Email da conta" required />
+        <button>Gerar token de recuperação</button>
+        <input name="token" placeholder="Token de recuperação" />
+        <input name="password" type="password" placeholder="Nova senha" minlength="8" />
+        <button type="button" onclick="resetPassword()">Alterar senha</button>
+      </form>
+
+      <p id="authMsg" class="message"></p>
+    </section>
+
+    <section id="panel" hidden>
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Automação residencial</p>
+          <h1>Painel Inteligente</h1>
+          <p class="subtitle">Controle de 3 lâmpadas com confirmação visual do estado real.</p>
+        </div>
+
+        <div class="hero-card">
+          <div class="hero-line"><span>Dispositivo</span><strong id="deviceId">—</strong></div>
+          <div class="hero-line"><span>Online</span><strong id="online">—</strong></div>
+          <div class="hero-line"><span>Sincronizado</span><strong id="synced">—</strong></div>
+          <div class="hero-line"><span>Última atualização</span><strong id="lastSeen">—</strong></div>
+          <button class="ghost" onclick="logout()">Sair</button>
+        </div>
+      </section>
+
+      <section class="actions">
+        <button onclick="setAll(true)">Ligar todos</button>
+        <button onclick="setAll(false)">Desligar todos</button>
+        <button onclick="refreshState()">Atualizar</button>
+      </section>
+
+      <section class="grid">
+        <article class="relay-card" id="card-r1">
+          <div class="card-head"><div><p>Saída 1</p><h2>Sala</h2></div><div class="pill" id="pill-r1">—</div></div>
+          <p>Estado desejado: <strong id="desired-r1">—</strong></p>
+          <p>Estado real: <strong id="actual-r1">—</strong></p>
+          <button onclick="toggleRelay('r1')">Alternar</button>
+        </article>
+
+        <article class="relay-card" id="card-r2">
+          <div class="card-head"><div><p>Saída 2</p><h2>Quarto</h2></div><div class="pill" id="pill-r2">—</div></div>
+          <p>Estado desejado: <strong id="desired-r2">—</strong></p>
+          <p>Estado real: <strong id="actual-r2">—</strong></p>
+          <button onclick="toggleRelay('r2')">Alternar</button>
+        </article>
+
+        <article class="relay-card" id="card-r3">
+          <div class="card-head"><div><p>Saída 3</p><h2>Cozinha</h2></div><div class="pill" id="pill-r3">—</div></div>
+          <p>Estado desejado: <strong id="desired-r3">—</strong></p>
+          <p>Estado real: <strong id="actual-r3">—</strong></p>
+          <button onclick="toggleRelay('r3')">Alternar</button>
+        </article>
+      </section>
+
+      <section class="logbox">
+        <h3>Histórico recente <span id="syncState">—</span></h3>
+        <div id="logs"></div>
+      </section>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

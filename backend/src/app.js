@@ -1,0 +1,16 @@
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const { deviceId } = require('./config/env');
+const { notFound, errorHandler } = require('./middleware/errorMiddleware');
+const app = express();
+app.use(cors()); app.use(express.urlencoded({ extended: true })); app.use(express.json());
+app.get('/config.js', (req, res) => res.type('application/javascript').send(`window.APP_CONFIG = ${JSON.stringify({ deviceId })};`));
+app.use(express.static(path.join(__dirname, '..', 'public')));
+app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/device', require('./routes/deviceRoutes'));
+app.use('/api/relays', require('./routes/relayRoutes'));
+app.use('/api/logs', require('./routes/logRoutes'));
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, '..', 'public', 'index.html')));
+app.use(notFound); app.use(errorHandler);
+module.exports = app;
