@@ -27,11 +27,37 @@ async function fetchJSON(url, options = {}) {
   return res.json();
 }
 
+function notify(message) {
+  if (!message) return;
+  toast.textContent = message;
+  toast.hidden = false;
+  clearTimeout(notify.timer);
+  notify.timer = setTimeout(() => { toast.hidden = true; }, 3600);
+}
+
 function showAuth(mode) {
   loginForm.hidden = mode !== 'login';
   registerForm.hidden = mode !== 'register';
   forgotForm.hidden = mode !== 'forgot';
+  document.querySelectorAll('.tabs button').forEach((button) => button.classList.remove('active'));
+  document.getElementById(`tab-${mode}`)?.classList.add('active');
   authMsg.textContent = '';
+}
+
+async function withBusy(button, task, loadingText = 'Processando…') {
+  const original = button?.innerHTML;
+  if (button) {
+    button.disabled = true;
+    button.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${loadingText}`;
+  }
+  try {
+    return await task();
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.innerHTML = original;
+    }
+  }
 }
 
 function setSession(nextToken) {
@@ -62,6 +88,7 @@ loginForm.onsubmit = async (event) => {
       headers: { Authorization: '' }
     });
     setSession(response.data.token);
+    notify('Login realizado com sucesso.');
   } catch (err) {
     authMsg.textContent = err.message;
   }
@@ -76,6 +103,7 @@ registerForm.onsubmit = async (event) => {
       headers: { Authorization: '' }
     });
     setSession(response.data.token);
+    notify('Conta criada com sucesso.');
   } catch (err) {
     authMsg.textContent = err.message;
   }
@@ -93,6 +121,7 @@ forgotForm.onsubmit = async (event) => {
     authMsg.textContent = response.data.resetToken
       ? `Token de desenvolvimento: ${response.data.resetToken}`
       : response.data.message;
+    notify('Solicitação de recuperação enviada.');
   } catch (err) {
     authMsg.textContent = err.message;
   }
@@ -107,6 +136,7 @@ async function resetPassword() {
       headers: { Authorization: '' }
     });
     authMsg.textContent = response.data.message;
+    notify('Senha alterada. Faça login novamente.');
     showAuth('login');
   } catch (err) {
     authMsg.textContent = err.message;
@@ -145,7 +175,14 @@ function renderState(device) {
   RELAYS.forEach((relay) => setCard(relay, device.desired[relay], device.actual[relay]));
 
   logs.innerHTML = '';
-  (device.logs || []).slice(0, 8).forEach((log) => {
+  const recentLogs = (device.logs || []).slice(0, 8);
+  if (!recentLogs.length) {
+    logs.className = 'logs-empty';
+    logs.textContent = 'Aguardando eventos do dispositivo…';
+    return;
+  }
+  logs.className = '';
+  recentLogs.forEach((log) => {
     const div = document.createElement('div');
     div.className = 'log-item';
     div.textContent = `${log.ts} — ${log.action} — ${log.detail}`;
@@ -160,17 +197,23 @@ async function refreshState() {
   } catch (err) {
     if (String(err.message).includes('401')) logout();
     syncState.textContent = 'Erro de ligação';
+    notify('Não foi possível atualizar o estado do dispositivo.');
   }
 }
 
 async function toggleRelay(relay) {
-  const response = await fetchJSON(`/api/device/${DEVICE_ID}/state`);
-  const next = { ...response.data.desired, [relay]: !response.data.desired[relay] };
-  await setAllState(next);
+  const button = document.querySelector(`#card-${relay} button`);
+  await withBusy(button, async () => {
+    const response = await fetchJSON(`/api/device/${DEVICE_ID}/state`);
+    const next = { ...response.data.desired, [relay]: !response.data.desired[relay] };
+    await setAllState(next);
+    notify(`Comando enviado para ${relay.toUpperCase()}.`);
+  }, 'Enviando…');
 }
 
 async function setAll(state) {
   await setAllState({ r1: state, r2: state, r3: state });
+  notify(state ? 'Comando para ligar todas as cargas enviado.' : 'Comando para desligar todas as cargas enviado.');
 }
 
 async function setAllState(state) {
@@ -257,4 +300,5 @@ powerForm.onsubmit = async (event) => {
     body: JSON.stringify(payload)
   });
   renderEnergy(response.data);
+  notify('Potências guardadas com sucesso.');
 };
