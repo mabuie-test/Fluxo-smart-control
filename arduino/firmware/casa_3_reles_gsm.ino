@@ -20,6 +20,7 @@ int lastSeq = 0;
 bool r1 = false;
 bool r2 = false;
 bool r3 = false;
+int lastRssiDbm = -113;
 
 String readResponse(unsigned long timeout = 8000) {
   String data = "";
@@ -127,11 +128,26 @@ String buildPullUrl() {
   return String(SERVER) + "/api/device/" + DEVICE_ID + "/pull?key=" + DEVICE_KEY + "&seq=" + String(lastSeq);
 }
 
+int readRssiDbm() {
+  while (sim800.available()) sim800.read();
+  sim800.println("AT+CSQ");
+  String resp = readResponse(1500);
+  int marker = resp.indexOf("+CSQ:");
+  if (marker < 0) return lastRssiDbm;
+  int comma = resp.indexOf(',', marker);
+  if (comma < 0) return lastRssiDbm;
+  int csq = resp.substring(marker + 5, comma).toInt();
+  if (csq == 99) return lastRssiDbm;
+  lastRssiDbm = -113 + (2 * csq);
+  return lastRssiDbm;
+}
+
 String buildPushUrl() {
   return String(SERVER) + "/api/device/" + DEVICE_ID + "/push?key=" + DEVICE_KEY +
          "&r1=" + String(r1 ? 1 : 0) +
          "&r2=" + String(r2 ? 1 : 0) +
-         "&r3=" + String(r3 ? 1 : 0);
+         "&r3=" + String(r3 ? 1 : 0) +
+         "&rssi=" + String(readRssiDbm());
 }
 
 void reportStatus() {
