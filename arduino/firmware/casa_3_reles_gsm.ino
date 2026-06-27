@@ -1,4 +1,5 @@
 #include <SoftwareSerial.h>
+#include <EEPROM.h>
 
 SoftwareSerial sim800(2, 3); // D2 = RX Arduino, D3 = TX Arduino via divisor de tensão
 
@@ -21,6 +22,10 @@ bool r1 = false;
 bool r2 = false;
 bool r3 = false;
 int lastRssiDbm = -113;
+
+const int EEPROM_MAGIC_ADDR = 0;
+const int EEPROM_STATE_ADDR = 1;
+const byte EEPROM_MAGIC_VALUE = 0x42;
 
 String readResponse(unsigned long timeout = 8000) {
   String data = "";
@@ -65,13 +70,39 @@ bool asBool(const String& v) {
   return v == "1" || v.equalsIgnoreCase("true") || v.equalsIgnoreCase("on");
 }
 
-void applyRelayState(bool a, bool b, bool c) {
+byte relayStateToByte(bool a, bool b, bool c) {
+  return (a ? 1 : 0) | (b ? 2 : 0) | (c ? 4 : 0);
+}
+
+void writeRelayStateToEeprom() {
+  byte state = relayStateToByte(r1, r2, r3);
+  EEPROM.update(EEPROM_MAGIC_ADDR, EEPROM_MAGIC_VALUE);
+  EEPROM.update(EEPROM_STATE_ADDR, state);
+}
+
+bool loadRelayStateFromEeprom() {
+  if (EEPROM.read(EEPROM_MAGIC_ADDR) != EEPROM_MAGIC_VALUE) return false;
+
+  byte state = EEPROM.read(EEPROM_STATE_ADDR);
+  r1 = state & 1;
+  r2 = state & 2;
+  r3 = state & 4;
+  return true;
+}
+
+void applyRelayState(bool a, bool b, bool c, bool saveToEeprom = true) {
+  bool changed = (r1 != a) || (r2 != b) || (r3 != c);
+
   r1 = a;
   r2 = b;
   r3 = c;
   digitalWrite(RELAY1_PIN, r1 ? RELAY_ON : RELAY_OFF);
   digitalWrite(RELAY2_PIN, r2 ? RELAY_ON : RELAY_OFF);
   digitalWrite(RELAY3_PIN, r3 ? RELAY_ON : RELAY_OFF);
+
+  if (saveToEeprom && changed) {
+    writeRelayStateToEeprom();
+  }
 }
 
 bool gsmInit() {
@@ -179,7 +210,14 @@ void setup() {
   pinMode(RELAY1_PIN, OUTPUT);
   pinMode(RELAY2_PIN, OUTPUT);
   pinMode(RELAY3_PIN, OUTPUT);
-  applyRelayState(false, false, false);
+  if (loadRelayStateFromEeprom()) {
+    applyRelayState(r1, r2, r3, false);
+    Serial.println("Estado restaurado da EEPROM");
+  } else {
+    applyRelayState(false, false, false, false);
+    writeRelayStateToEeprom();
+    Serial.println("Sem estado gravado na EEPROM; reles desligados");
+  }
 
   Serial.println("Iniciando...");
   Serial.println(gsmInit() ? "GSM OK" : "GSM FALHOU");
