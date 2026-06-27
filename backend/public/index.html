@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Painel da Casa</title>
+  <title>Fluxo Smart Control</title>
   <link rel="preconnect" href="https://cdnjs.cloudflare.com" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="stylesheet" href="styles.css" />
@@ -11,98 +11,119 @@
 </head>
 <body>
   <div class="bg"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
   <main class="container">
-    <section id="auth" class="auth-card">
-      <div class="brand-mark"><i class="fa-solid fa-house"></i></div>
-      <p class="eyebrow">Automação residencial</p>
-      <h1>Casa Inteligente</h1>
-      <p>Entre, crie conta ou recupere o acesso para controlar os relés com segurança.</p>
-
-      <div class="tabs">
-        <button type="button" onclick="showAuth('login')"><i class="fa-solid fa-right-to-bracket"></i> Entrar</button>
-        <button type="button" onclick="showAuth('register')"><i class="fa-solid fa-user-plus"></i> Criar conta</button>
-        <button type="button" onclick="showAuth('forgot')"><i class="fa-solid fa-key"></i> Recuperar</button>
+    <section id="auth" class="auth-shell">
+      <div class="auth-hero">
+        <p class="eyebrow"><i class="fa-solid fa-shield-halved"></i> Acesso seguro</p>
+        <h1>Fluxo Smart Control</h1>
+        <p class="subtitle">Uma experiência profissional para controlar cargas, acompanhar sincronização e visualizar telemetria do seu dispositivo.</p>
+        <div class="trust-grid" aria-label="Recursos do sistema">
+          <div><strong>3</strong><span>Saídas</span></div>
+          <div><strong>2.5s</strong><span>Atualização</span></div>
+          <div><strong>24/7</strong><span>Monitoramento</span></div>
+        </div>
       </div>
 
-      <form id="loginForm" class="auth-form">
-        <label><i class="fa-solid fa-envelope"></i><input name="email" type="email" placeholder="Email" required /></label>
-        <label><i class="fa-solid fa-lock"></i><input name="password" type="password" placeholder="Senha" minlength="8" required /></label>
-        <button><i class="fa-solid fa-bolt"></i> Entrar</button>
-      </form>
+      <div class="auth-card">
+        <div class="brand-mark"><i class="fa-solid fa-house-signal"></i></div>
+        <p class="eyebrow">Automação residencial</p>
+        <h2>Bem-vindo</h2>
+        <p>Entre, crie conta ou recupere o acesso para controlar os relés com segurança.</p>
 
-      <form id="registerForm" class="auth-form" hidden>
-        <label><i class="fa-solid fa-user"></i><input name="name" placeholder="Nome" required /></label>
-        <label><i class="fa-solid fa-envelope"></i><input name="email" type="email" placeholder="Email" required /></label>
-        <label><i class="fa-solid fa-lock"></i><input name="password" type="password" placeholder="Senha com pelo menos 8 caracteres" minlength="8" required /></label>
-        <button><i class="fa-solid fa-circle-plus"></i> Criar conta</button>
-      </form>
+        <div class="tabs" role="tablist" aria-label="Autenticação">
+          <button id="tab-login" type="button" class="active" onclick="showAuth('login')"><i class="fa-solid fa-right-to-bracket"></i> Entrar</button>
+          <button id="tab-register" type="button" onclick="showAuth('register')"><i class="fa-solid fa-user-plus"></i> Criar conta</button>
+          <button id="tab-forgot" type="button" onclick="showAuth('forgot')"><i class="fa-solid fa-key"></i> Recuperar</button>
+        </div>
 
-      <form id="forgotForm" class="auth-form" hidden>
-        <label><i class="fa-solid fa-envelope-open-text"></i><input name="email" type="email" placeholder="Email da conta" required /></label>
-        <button><i class="fa-solid fa-paper-plane"></i> Gerar token de recuperação</button>
-        <label><i class="fa-solid fa-ticket"></i><input name="token" placeholder="Token de recuperação" /></label>
-        <label><i class="fa-solid fa-unlock-keyhole"></i><input name="password" type="password" placeholder="Nova senha" minlength="8" /></label>
-        <button type="button" onclick="resetPassword()"><i class="fa-solid fa-shield-halved"></i> Alterar senha</button>
-      </form>
+        <form id="loginForm" class="auth-form">
+          <label><span>Email</span><i class="fa-solid fa-envelope"></i><input name="email" type="email" placeholder="voce@email.com" autocomplete="email" required /></label>
+          <label><span>Senha</span><i class="fa-solid fa-lock"></i><input name="password" type="password" placeholder="••••••••" autocomplete="current-password" minlength="8" required /></label>
+          <button><i class="fa-solid fa-bolt"></i> Entrar no painel</button>
+        </form>
 
-      <p id="authMsg" class="message"></p>
+        <form id="registerForm" class="auth-form" hidden>
+          <label><span>Nome</span><i class="fa-solid fa-user"></i><input name="name" placeholder="Seu nome" autocomplete="name" required /></label>
+          <label><span>Email</span><i class="fa-solid fa-envelope"></i><input name="email" type="email" placeholder="voce@email.com" autocomplete="email" required /></label>
+          <label><span>Senha</span><i class="fa-solid fa-lock"></i><input name="password" type="password" placeholder="Mínimo 8 caracteres" autocomplete="new-password" minlength="8" required /></label>
+          <button><i class="fa-solid fa-circle-plus"></i> Criar conta</button>
+        </form>
+
+        <form id="forgotForm" class="auth-form" hidden>
+          <label><span>Email da conta</span><i class="fa-solid fa-envelope-open-text"></i><input name="email" type="email" placeholder="voce@email.com" required /></label>
+          <button><i class="fa-solid fa-paper-plane"></i> Gerar token</button>
+          <label><span>Token</span><i class="fa-solid fa-ticket"></i><input name="token" placeholder="Cole o token recebido" /></label>
+          <label><span>Nova senha</span><i class="fa-solid fa-unlock-keyhole"></i><input name="password" type="password" placeholder="Nova senha" minlength="8" /></label>
+          <button type="button" onclick="resetPassword()"><i class="fa-solid fa-shield-halved"></i> Alterar senha</button>
+        </form>
+
+        <p id="authMsg" class="message"></p>
+      </div>
     </section>
 
     <section id="panel" hidden>
+      <header class="topbar">
+        <div class="logo-lockup"><div class="brand-mark small"><i class="fa-solid fa-house-signal"></i></div><div><strong>Fluxo</strong><span>Smart Control</span></div></div>
+        <button class="ghost compact" onclick="logout()"><i class="fa-solid fa-power-off"></i> Sair</button>
+      </header>
+
       <section class="hero">
         <div>
           <p class="eyebrow"><i class="fa-solid fa-satellite-dish"></i> Automação residencial</p>
           <h1>Painel Inteligente</h1>
-          <p class="subtitle">Controle de 3 cargas com ícones vivos e confirmação visual do estado real.</p>
+          <p class="subtitle">Controle de 3 cargas com feedback visual, estado real do Arduino e telemetria em tempo quase real.</p>
+          <div class="status-strip">
+            <div><span>Status</span><strong id="online">—</strong></div>
+            <div><span>Sincronização</span><strong id="synced">—</strong></div>
+            <div><span>RSSI</span><strong id="rssi">—</strong></div>
+          </div>
         </div>
 
         <div class="hero-card">
           <div class="hero-line"><span><i class="fa-solid fa-microchip"></i> Dispositivo</span><strong id="deviceId">—</strong></div>
-          <div class="hero-line"><span><i class="fa-solid fa-wifi"></i> Online</span><strong id="online">—</strong></div>
-          <div class="hero-line"><span><i class="fa-solid fa-rotate"></i> Sincronizado</span><strong id="synced">—</strong></div>
           <div class="hero-line"><span><i class="fa-solid fa-clock"></i> Última atualização</span><strong id="lastSeen">—</strong></div>
-          <div class="hero-line"><span><i class="fa-solid fa-signal"></i> Sinal RSSI</span><strong id="rssi">—</strong></div>
-          <button class="ghost" onclick="logout()"><i class="fa-solid fa-power-off"></i> Sair</button>
+          <div class="hero-line"><span><i class="fa-solid fa-list-check"></i> Estado</span><strong id="syncState">—</strong></div>
+          <button class="ghost" onclick="refreshState()"><i class="fa-solid fa-arrows-rotate"></i> Atualizar agora</button>
         </div>
       </section>
 
-      <section class="actions">
+      <section class="actions" aria-label="Ações rápidas">
         <button onclick="setAll(true)"><i class="fa-solid fa-toggle-on"></i> Ligar todos</button>
-        <button onclick="setAll(false)"><i class="fa-solid fa-toggle-off"></i> Desligar todos</button>
-        <button onclick="refreshState()"><i class="fa-solid fa-arrows-rotate"></i> Atualizar</button>
-        <button onclick="showEnergyPage()"><i class="fa-solid fa-chart-line"></i> Consumo e sinal</button>
+        <button class="danger" onclick="setAll(false)"><i class="fa-solid fa-toggle-off"></i> Desligar todos</button>
+        <button class="secondary" onclick="showEnergyPage()"><i class="fa-solid fa-chart-line"></i> Consumo e sinal</button>
       </section>
 
       <section class="grid">
         <article class="relay-card" id="card-r1">
           <div class="glow-ring"><i class="fa-solid fa-couch"></i></div>
           <div class="card-head"><div><p>Saída 1</p><h2>Sala</h2></div><div class="pill" id="pill-r1">—</div></div>
-          <div class="state-row"><span>Comando</span><strong id="desired-r1">—</strong></div>
-          <div class="state-row"><span>Carga real</span><strong id="actual-r1">—</strong></div>
+          <div class="state-row"><span>Comando enviado</span><strong id="desired-r1">—</strong></div>
+          <div class="state-row"><span>Carga confirmada</span><strong id="actual-r1">—</strong></div>
           <button onclick="toggleRelay('r1')"><i class="fa-solid fa-plug"></i> Alternar carga</button>
         </article>
 
         <article class="relay-card" id="card-r2">
           <div class="glow-ring"><i class="fa-solid fa-bed"></i></div>
           <div class="card-head"><div><p>Saída 2</p><h2>Quarto</h2></div><div class="pill" id="pill-r2">—</div></div>
-          <div class="state-row"><span>Comando</span><strong id="desired-r2">—</strong></div>
-          <div class="state-row"><span>Carga real</span><strong id="actual-r2">—</strong></div>
+          <div class="state-row"><span>Comando enviado</span><strong id="desired-r2">—</strong></div>
+          <div class="state-row"><span>Carga confirmada</span><strong id="actual-r2">—</strong></div>
           <button onclick="toggleRelay('r2')"><i class="fa-solid fa-plug"></i> Alternar carga</button>
         </article>
 
         <article class="relay-card" id="card-r3">
           <div class="glow-ring"><i class="fa-solid fa-utensils"></i></div>
           <div class="card-head"><div><p>Saída 3</p><h2>Cozinha</h2></div><div class="pill" id="pill-r3">—</div></div>
-          <div class="state-row"><span>Comando</span><strong id="desired-r3">—</strong></div>
-          <div class="state-row"><span>Carga real</span><strong id="actual-r3">—</strong></div>
+          <div class="state-row"><span>Comando enviado</span><strong id="desired-r3">—</strong></div>
+          <div class="state-row"><span>Carga confirmada</span><strong id="actual-r3">—</strong></div>
           <button onclick="toggleRelay('r3')"><i class="fa-solid fa-plug"></i> Alternar carga</button>
         </article>
       </section>
 
       <section class="logbox">
-        <h3><i class="fa-solid fa-list-check"></i> Histórico recente <span id="syncState">—</span></h3>
-        <div id="logs"></div>
+        <h3><i class="fa-solid fa-list-check"></i> Histórico recente</h3>
+        <div id="logs" class="logs-empty">Aguardando eventos do dispositivo…</div>
       </section>
 
       <section id="energyPage" class="energy-page" hidden>
@@ -112,7 +133,7 @@
             <h2>Consumo e sinal</h2>
             <p>Configure a potência de cada carga para estimar kWh com base no tempo real em que ficou ligada.</p>
           </div>
-          <button class="ghost" onclick="hideEnergyPage()"><i class="fa-solid fa-xmark"></i> Fechar</button>
+          <button class="ghost compact" onclick="hideEnergyPage()"><i class="fa-solid fa-xmark"></i> Fechar</button>
         </div>
         <div class="signal-card">
           <strong id="energyRssi">—</strong>
