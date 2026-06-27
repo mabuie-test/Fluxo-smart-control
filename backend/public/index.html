@@ -62,6 +62,7 @@
           <div class="hero-line"><span><i class="fa-solid fa-wifi"></i> Online</span><strong id="online">—</strong></div>
           <div class="hero-line"><span><i class="fa-solid fa-rotate"></i> Sincronizado</span><strong id="synced">—</strong></div>
           <div class="hero-line"><span><i class="fa-solid fa-clock"></i> Última atualização</span><strong id="lastSeen">—</strong></div>
+          <div class="hero-line"><span><i class="fa-solid fa-signal"></i> Sinal RSSI</span><strong id="rssi">—</strong></div>
           <button class="ghost" onclick="logout()"><i class="fa-solid fa-power-off"></i> Sair</button>
         </div>
       </section>
@@ -70,6 +71,7 @@
         <button onclick="setAll(true)"><i class="fa-solid fa-toggle-on"></i> Ligar todos</button>
         <button onclick="setAll(false)"><i class="fa-solid fa-toggle-off"></i> Desligar todos</button>
         <button onclick="refreshState()"><i class="fa-solid fa-arrows-rotate"></i> Atualizar</button>
+        <button onclick="showEnergyPage()"><i class="fa-solid fa-chart-line"></i> Consumo e sinal</button>
       </section>
 
       <section class="grid">
@@ -101,6 +103,29 @@
       <section class="logbox">
         <h3><i class="fa-solid fa-list-check"></i> Histórico recente <span id="syncState">—</span></h3>
         <div id="logs"></div>
+      </section>
+
+      <section id="energyPage" class="energy-page" hidden>
+        <div class="energy-header">
+          <div>
+            <p class="eyebrow"><i class="fa-solid fa-signal"></i> Telemetria</p>
+            <h2>Consumo e sinal</h2>
+            <p>Configure a potência de cada carga para estimar kWh com base no tempo real em que ficou ligada.</p>
+          </div>
+          <button class="ghost" onclick="hideEnergyPage()"><i class="fa-solid fa-xmark"></i> Fechar</button>
+        </div>
+        <div class="signal-card">
+          <strong id="energyRssi">—</strong>
+          <span id="energyRssiLabel">Aguardando RSSI do SIM800</span>
+          <small>Total estimado: <b id="totalKwh">0.0000 kWh</b></small>
+        </div>
+        <form id="powerForm" class="power-form">
+          <label>Potência Sala (W)<input name="r1" type="number" min="0" step="0.1" /></label>
+          <label>Potência Quarto (W)<input name="r2" type="number" min="0" step="0.1" /></label>
+          <label>Potência Cozinha (W)<input name="r3" type="number" min="0" step="0.1" /></label>
+          <button><i class="fa-solid fa-floppy-disk"></i> Guardar potências</button>
+        </form>
+        <div id="energyCards" class="energy-grid"></div>
       </section>
     </section>
   </main>

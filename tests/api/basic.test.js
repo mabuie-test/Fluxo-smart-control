@@ -36,3 +36,10 @@ test('device sync helpers detect online and synced states', () => {
   assert.equal(syncedState({ desired: { r1: true, r2: false, r3: true }, actual: { r1: true, r2: false, r3: true } }), true);
   assert.equal(syncedState({ desired: { r1: true, r2: false, r3: true }, actual: { r1: false, r2: false, r3: true } }), false);
 });
+
+const { formatDuration, relayEnergyKwh } = require('../../backend/src/utils/energy');
+
+test('energy helpers format duration and estimate kWh', () => {
+  assert.equal(formatDuration(3661), '1h 1m 1s');
+  assert.equal(relayEnergyKwh(100, { totalOnSeconds: 3600 }, '2026-01-01T00:00:00.000Z'), 0.1);
+});
