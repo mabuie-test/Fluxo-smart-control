@@ -20,6 +20,7 @@ int lastSeq = 0;
 bool r1 = false;
 bool r2 = false;
 bool r3 = false;
+int lastRssiDbm = 0;
 
 String readResponse(unsigned long timeout = 8000) {
   String data = "";
@@ -62,6 +63,24 @@ String extractValue(const String& body, const String& key) {
 
 bool asBool(const String& v) {
   return v == "1" || v.equalsIgnoreCase("true") || v.equalsIgnoreCase("on");
+}
+
+int csqToDbm(int csq) {
+  if (csq < 0 || csq == 99) return 0;
+  return -113 + (2 * csq);
+}
+
+int readRssiDbm() {
+  while (sim800.available()) sim800.read();
+  sim800.println("AT+CSQ");
+  String resp = readResponse(1600);
+  int p = resp.indexOf("+CSQ:");
+  if (p < 0) return lastRssiDbm;
+  int comma = resp.indexOf(',', p);
+  if (comma < 0) return lastRssiDbm;
+  int csq = resp.substring(p + 5, comma).toInt();
+  lastRssiDbm = csqToDbm(csq);
+  return lastRssiDbm;
 }
 
 void applyRelayState(bool a, bool b, bool c) {
@@ -131,7 +150,8 @@ String buildPushUrl() {
   return String(SERVER) + "/api/device/" + DEVICE_ID + "/push?key=" + DEVICE_KEY +
          "&r1=" + String(r1 ? 1 : 0) +
          "&r2=" + String(r2 ? 1 : 0) +
-         "&r3=" + String(r3 ? 1 : 0);
+         "&r3=" + String(r3 ? 1 : 0) +
+         "&rssi=" + String(readRssiDbm());
 }
 
 void reportStatus() {

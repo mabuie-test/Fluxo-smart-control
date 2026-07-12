@@ -70,3 +70,18 @@ h1{font-size:clamp(2.4rem,5vw,4.8rem);line-height:.95;margin:0;background:linear
 .actions button,.tabs button{width:100%}
 h1{font-size:2.5rem}
 }
+.page-nav{display:flex;gap:12px;flex-wrap:wrap;margin:20px 0}
+.page-nav button{width:auto;background:rgba(255,255,255,.08);color:var(--text);border:1px solid var(--border);box-shadow:none}
+.page-nav button.active{background:linear-gradient(135deg,#a9ecff,#54c6ff 45%,#29ff9a);color:#05101f}
+.metrics-top{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px}
+.metric-card{background:linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,.045));border:1px solid var(--border);box-shadow:var(--shadow);backdrop-filter:blur(18px);border-radius:28px;padding:24px}
+.metric-card h2{font-size:clamp(2rem,4vw,3.4rem);margin:.25rem 0;color:var(--text)}
+.metric-head,.metric-row{display:grid;grid-template-columns:1.4fr .9fr .7fr .8fr;gap:14px;align-items:center}
+.metric-head{padding:0 14px 8px;font-weight:900;color:var(--accent);text-transform:uppercase;font-size:.78rem;letter-spacing:.12em}
+.metric-row{padding:14px;border-radius:16px;background:rgba(255,255,255,.055);margin-top:10px;color:var(--muted);border:1px solid rgba(255,255,255,.07)}
+.metric-row strong{display:block;color:var(--text)}
+.metric-row span{display:block;margin-top:4px;font-size:.88rem}
+.energy-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.energy-form label{color:var(--muted);font-weight:800}
+.energy-form button{max-width:360px}
+@media(max-width:760px){.metrics-top,.energy-grid{grid-template-columns:1fr}.metric-head{display:none}.metric-row{grid-template-columns:1fr}.page-nav button{flex:1}}
