@@ -66,6 +66,12 @@
         </div>
       </section>
 
+      <nav class="page-nav">
+        <button id="navControl" type="button" onclick="showPage('control')"><i class="fa-solid fa-sliders"></i> Controlo</button>
+        <button id="navMetrics" type="button" onclick="showPage('metrics')"><i class="fa-solid fa-chart-line"></i> Sinal e consumo</button>
+      </nav>
+
+      <div id="controlPage">
       <section class="actions">
         <button onclick="setAll(true)"><i class="fa-solid fa-toggle-on"></i> Ligar todos</button>
         <button onclick="setAll(false)"><i class="fa-solid fa-toggle-off"></i> Desligar todos</button>
@@ -101,6 +107,41 @@
       <section class="logbox">
         <h3><i class="fa-solid fa-list-check"></i> Histórico recente <span id="syncState">—</span></h3>
         <div id="logs"></div>
+      </section>
+      </div>
+
+      <section id="metricsPage" class="metrics-page" hidden>
+        <div class="metrics-top">
+          <article class="metric-card">
+            <p class="eyebrow"><i class="fa-solid fa-signal"></i> Sinal GSM</p>
+            <h2 id="rssiValue">—</h2>
+            <span id="rssiUpdated">Sem leitura RSSI ainda</span>
+          </article>
+          <article class="metric-card">
+            <p class="eyebrow"><i class="fa-solid fa-bolt"></i> Energia acumulada</p>
+            <h2 id="totalKwh">0.0000 kWh</h2>
+            <span>Cálculo baseado no tempo em que cada carga ficou ligada.</span>
+          </article>
+        </div>
+
+        <section class="logbox">
+          <h3><i class="fa-solid fa-stopwatch"></i> Tempo ligado e consumo por carga</h3>
+          <div class="metric-head"><span>Carga</span><span>Tempo ligada</span><span>Potência</span><span>Consumo</span></div>
+          <div id="metricsRows"></div>
+        </section>
+
+        <form id="metricsForm" class="logbox energy-form">
+          <h3><i class="fa-solid fa-pen-to-square"></i> Dados editáveis de consumo</h3>
+          <div class="energy-grid">
+            <label>Nome R1<input name="r1-label" placeholder="Sala" /></label>
+            <label>Potência R1 (W)<input name="r1-watts" type="number" min="0" step="0.1" /></label>
+            <label>Nome R2<input name="r2-label" placeholder="Quarto" /></label>
+            <label>Potência R2 (W)<input name="r2-watts" type="number" min="0" step="0.1" /></label>
+            <label>Nome R3<input name="r3-label" placeholder="Cozinha" /></label>
+            <label>Potência R3 (W)<input name="r3-watts" type="number" min="0" step="0.1" /></label>
+          </div>
+          <button><i class="fa-solid fa-floppy-disk"></i> Guardar dados de consumo</button>
+        </form>
       </section>
     </section>
   </main>

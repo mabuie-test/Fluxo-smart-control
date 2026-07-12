@@ -1,8 +1,16 @@
 const DEVICE_ID = window.APP_CONFIG?.deviceId || 'CASA01';
 const RELAYS = ['r1', 'r2', 'r3'];
 let token = localStorage.getItem('token') || '';
+let currentPage = 'control';
 
 const mapBool = (value) => (value ? 'LIGADA' : 'DESLIGADA');
+const fmtSeconds = (seconds) => {
+  const s = Math.max(0, Math.floor(Number(seconds || 0)));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  return `${h}h ${String(m).padStart(2, '0')}min`;
+};
+const fmtKwh = (value) => `${Number(value || 0).toFixed(4)} kWh`;
 
 function authHeaders() {
   return token ? { Authorization: `Bearer ${token}` } : {};
@@ -155,11 +163,70 @@ async function refreshState() {
   try {
     const response = await fetchJSON(`/api/device/${DEVICE_ID}/state`);
     renderState(response.data);
+    if (currentPage === 'metrics') await refreshMetrics();
   } catch (err) {
     if (String(err.message).includes('401')) logout();
     syncState.textContent = 'Erro de ligação';
   }
 }
+
+function showPage(page) {
+  currentPage = page;
+  controlPage.hidden = page !== 'control';
+  metricsPage.hidden = page !== 'metrics';
+  navControl.classList.toggle('active', page === 'control');
+  navMetrics.classList.toggle('active', page === 'metrics');
+  if (page === 'metrics') refreshMetrics();
+}
+
+function renderMetrics(metrics) {
+  rssiValue.textContent = metrics.rssi === null || metrics.rssi === undefined ? '—' : `${metrics.rssi} dBm`;
+  rssiUpdated.textContent = metrics.rssiUpdatedAt ? `Atualizado em ${new Date(metrics.rssiUpdatedAt).toLocaleString()}` : 'Sem leitura RSSI ainda';
+  totalKwh.textContent = fmtKwh(metrics.totalKwh);
+  metricsRows.innerHTML = '';
+
+  metrics.relays.forEach((item) => {
+    const row = document.createElement('div');
+    row.className = 'metric-row';
+
+    const nameCell = document.createElement('div');
+    const name = document.createElement('strong');
+    name.textContent = `${item.relay.toUpperCase()} · ${item.label}`;
+    const status = document.createElement('span');
+    status.textContent = item.currentlyOn ? `Ligada desde ${new Date(item.onSince).toLocaleString()}` : 'Desligada';
+    nameCell.append(name, status);
+
+    [nameCell, fmtSeconds(item.runtimeSeconds), `${Number(item.powerWatts || 0)} W`, fmtKwh(item.kwh)].forEach((value) => {
+      const cell = value instanceof HTMLElement ? value : document.createElement('div');
+      if (!(value instanceof HTMLElement)) cell.textContent = value;
+      row.appendChild(cell);
+    });
+    metricsRows.appendChild(row);
+
+    const label = document.querySelector(`[name="${item.relay}-label"]`);
+    const watts = document.querySelector(`[name="${item.relay}-watts"]`);
+    if (label && document.activeElement !== label) label.value = item.label;
+    if (watts && document.activeElement !== watts) watts.value = item.powerWatts;
+  });
+}
+
+async function refreshMetrics() {
+  const response = await fetchJSON(`/api/device/${DEVICE_ID}/metrics`);
+  renderMetrics(response.data);
+}
+
+metricsForm.onsubmit = async (event) => {
+  event.preventDefault();
+  const payload = {};
+  RELAYS.forEach((relay) => {
+    payload[relay] = {
+      label: event.target.elements[`${relay}-label`].value,
+      powerWatts: Number(event.target.elements[`${relay}-watts`].value)
+    };
+  });
+  const response = await fetchJSON(`/api/device/${DEVICE_ID}/metrics`, { method: 'PUT', body: JSON.stringify(payload) });
+  renderMetrics(response.data);
+};
 
 async function toggleRelay(relay) {
   const response = await fetchJSON(`/api/device/${DEVICE_ID}/state`);
@@ -181,6 +248,8 @@ if (token) {
   panel.hidden = false;
   refreshState();
 }
+
+showPage('control');
 
 setInterval(() => {
   if (token) refreshState();

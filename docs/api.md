@@ -18,6 +18,8 @@ Enviar `Authorization: Bearer <token>`.
 
 - `GET /api/device/:deviceId/state` obtém estado desejado, estado real, sincronização, online e logs.
 - `GET|POST /api/device/:deviceId/set?r1=1&r2=0&r3=1` altera o estado desejado e incrementa `seq`.
+- `GET /api/device/:deviceId/metrics` obtém RSSI, tempo ligado por carga, potência configurada e consumo em kWh.
+- `PUT /api/device/:deviceId/metrics` atualiza nomes e potências das cargas, por exemplo `{ "r1": { "label": "Sala", "powerWatts": 80 } }`.
 - `GET /api/logs/:deviceId/logs` obtém os logs recentes.
 
 ## Firmware SIM800L
@@ -25,4 +27,4 @@ Enviar `Authorization: Bearer <token>`.
 Estes endpoints usam `DEVICE_KEY` e retornam texto simples para facilitar o parsing no Arduino.
 
 - `GET /api/device/:deviceId/pull?key=<DEVICE_KEY>&seq=<seq>` retorna `NONE`, `DENIED` ou corpo `OK\nSEQ=...\nR1=...`.
-- `GET /api/device/:deviceId/push?key=<DEVICE_KEY>&r1=1&r2=0&r3=1` retorna `ACK` quando o estado real é gravado.
+- `GET /api/device/:deviceId/push?key=<DEVICE_KEY>&r1=1&r2=0&r3=1&rssi=-75` retorna `ACK` quando o estado real e o RSSI em dBm são gravados.
