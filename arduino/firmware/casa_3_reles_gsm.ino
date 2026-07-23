@@ -24,6 +24,7 @@ bool r1 = false;
 bool r2 = false;
 bool r3 = false;
 int lastRssiDbm = -113;
+bool gsmReady = false;
 
 const int EEPROM_MAGIC_ADDR = 0;
 const int EEPROM_STATE_ADDR = 1;
@@ -144,7 +145,7 @@ bool waitForNetworkRegistration(unsigned long timeout = 90000) {
 }
 
 bool openGprsBearer(bool forceReset = false) {
-  debugLine(F("A configurar bearer GPRS para HTTPS..."));
+  debugLine(F("A configurar bearer GPRS..."));
 
   if (forceReset) {
     sendATDebug(F("AT+SAPBR=0,1"), 5000);
@@ -174,15 +175,34 @@ bool openGprsBearer(bool forceReset = false) {
   return hasIp;
 }
 
-bool ensureGprsHttpsReady() {
-  if (!waitForNetworkRegistration()) return false;
-  if (!openGprsBearer(true)) return false;
+bool serverUsesHttps() {
+  return String(SERVER).startsWith(F("https://"));
+}
+
+bool configureHttpSession(const String& url) {
   sendATOk(F("AT+HTTPTERM"), 1000);
   if (!sendATOk(F("AT+HTTPINIT"), 3000)) return false;
   if (!sendATOk(F("AT+HTTPPARA=\"CID\",1"), 3000)) return false;
-  if (!sendATOk(F("AT+HTTPSSL=1"), 3000)) return false;
+
+  bool useHttps = url.startsWith(F("https://"));
+  if (!sendATOk(String(F("AT+HTTPSSL=")) + (useHttps ? F("1") : F("0")), 3000)) {
+    sendATOk(F("AT+HTTPTERM"), 1000);
+    return false;
+  }
+
+  if (!sendATOk(String(F("AT+HTTPPARA=\"URL\",\"")) + url + F("\""), 5000)) {
+    sendATOk(F("AT+HTTPTERM"), 1000);
+    return false;
+  }
+
+  return true;
+}
+
+bool ensureGprsHttpReady() {
+  if (!waitForNetworkRegistration()) return false;
+  if (!openGprsBearer(true)) return false;
   sendATOk(F("AT+HTTPTERM"), 1000);
-  debugLine(F("HTTPS preparado."));
+  debugLine(serverUsesHttps() ? F("GPRS preparado para HTTPS.") : F("GPRS preparado para HTTP."));
   return true;
 }
 
@@ -195,26 +215,29 @@ bool gsmInit() {
   sendATOk(F("AT+CMEE=2"), 2000);
   sendATDebug(F("AT+CPIN?"), 3000);
   sendATDebug(F("AT+COPS?"), 3000);
-  return ensureGprsHttpsReady();
+  return ensureGprsHttpReady();
 }
 
 String httpGET(const String& url) {
   while (sim800.available()) sim800.read();
 
   if (!openGprsBearer(false)) {
-    debugLine(F("Bearer caiu antes do HTTP; a reinicializar GPRS/HTTPS."));
-    if (!ensureGprsHttpsReady()) return "";
+    debugLine(F("Bearer caiu antes do HTTP; a reinicializar GPRS."));
+    if (!ensureGprsHttpReady()) {
+      gsmReady = false;
+      return "";
+    }
   }
 
-  sendATOk(F("AT+HTTPTERM"), 1000);
-  if (!sendATOk(F("AT+HTTPINIT"), 3000)) return "";
-  if (!sendATOk(F("AT+HTTPPARA=\"CID\",1"), 3000)) return "";
-  if (!sendATOk(F("AT+HTTPSSL=1"), 3000)) return "";
-  if (!sendATOk(String(F("AT+HTTPPARA=\"URL\",\"")) + url + F("\""), 5000)) return "";
+  if (!configureHttpSession(url)) {
+    gsmReady = false;
+    return "";
+  }
 
   sim800.println("AT+HTTPACTION=0");
-  if (!waitFor("+HTTPACTION:", 15000)) {
+  if (!waitFor("+HTTPACTION:", 30000)) {
     sendATOk(F("AT+HTTPTERM"), 1000);
+    gsmReady = false;
     return "";
   }
 
@@ -290,11 +313,22 @@ void setup() {
   }
 
   Serial.println("Iniciando...");
-  Serial.println(gsmInit() ? "GSM OK" : "GSM FALHOU");
-  reportStatus();
+  gsmReady = gsmInit();
+  Serial.println(gsmReady ? "GSM OK" : "GSM FALHOU");
+  if (gsmReady) reportStatus();
 }
 
 void loop() {
+  if (!gsmReady) {
+    if (millis() - lastSync >= syncInterval) {
+      lastSync = millis();
+      gsmReady = gsmInit();
+      Serial.println(gsmReady ? "GSM OK" : "GSM FALHOU");
+      if (gsmReady) reportStatus();
+    }
+    return;
+  }
+
   if (millis() - lastSync >= syncInterval) {
     lastSync = millis();
     syncFromServer();
