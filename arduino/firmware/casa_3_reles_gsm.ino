@@ -10,6 +10,8 @@ SoftwareSerial sim800(2, 3); // D2 = RX Arduino, D3 = TX Arduino via divisor de 
 #define RELAY_OFF HIGH
 
 const char* APN = "internet";
+const char* APN_USER = "";
+const char* APN_PASS = "";
 const char* SERVER = "https://YOUR-RENDER-APP.onrender.com";
 const char* DEVICE_ID = "CASA01";
 const char* DEVICE_KEY = "CHAVE_SEGURA_123";
@@ -36,6 +38,26 @@ String readResponse(unsigned long timeout = 8000) {
   return data;
 }
 
+void debugLine(const String& msg) {
+  Serial.print(F("[GSM] "));
+  Serial.println(msg);
+}
+
+String sendATDebug(const String& cmd, unsigned long timeout = 2000) {
+  while (sim800.available()) sim800.read();
+  debugLine(String(F(">> ")) + cmd);
+  sim800.println(cmd);
+  String resp = readResponse(timeout);
+  resp.trim();
+  if (resp.length() == 0) resp = F("<sem resposta>");
+  debugLine(String(F("<< ")) + resp);
+  return resp;
+}
+
+bool responseHasOk(const String& resp) {
+  return resp.indexOf(F("OK")) != -1;
+}
+
 bool waitFor(const String& token, unsigned long timeout = 8000) {
   String buff = "";
   unsigned long start = millis();
@@ -49,10 +71,8 @@ bool waitFor(const String& token, unsigned long timeout = 8000) {
   return false;
 }
 
-void sendAT(const String& cmd, unsigned long timeout = 2000) {
-  while (sim800.available()) sim800.read();
-  sim800.println(cmd);
-  delay(timeout);
+bool sendATOk(const String& cmd, unsigned long timeout = 2000) {
+  return responseHasOk(sendATDebug(cmd, timeout));
 }
 
 String extractValue(const String& body, const String& key) {
@@ -105,53 +125,103 @@ void applyRelayState(bool a, bool b, bool c, bool saveToEeprom = true) {
   }
 }
 
+bool waitForNetworkRegistration(unsigned long timeout = 90000) {
+  debugLine(F("A aguardar registo na rede GSM/GPRS..."));
+  unsigned long start = millis();
+  while (millis() - start < timeout) {
+    String creg = sendATDebug(F("AT+CREG?"), 1500);
+    String cgreg = sendATDebug(F("AT+CGREG?"), 1500);
+    if (creg.indexOf(F(",1")) != -1 || creg.indexOf(F(",5")) != -1 ||
+        cgreg.indexOf(F(",1")) != -1 || cgreg.indexOf(F(",5")) != -1) {
+      debugLine(F("Rede registada."));
+      return true;
+    }
+    sendATDebug(F("AT+CSQ"), 1000);
+    delay(3000);
+  }
+  debugLine(F("Falha: sem registo na rede dentro do tempo limite."));
+  return false;
+}
+
+bool openGprsBearer(bool forceReset = false) {
+  debugLine(F("A configurar bearer GPRS para HTTPS..."));
+
+  if (forceReset) {
+    sendATDebug(F("AT+SAPBR=0,1"), 5000);
+    delay(1000);
+  }
+
+  if (!sendATOk(F("AT+SAPBR=3,1,\"CONTYPE\",\"GPRS\""), 3000)) return false;
+  if (!sendATOk(String(F("AT+SAPBR=3,1,\"APN\",\"")) + APN + F("\""), 3000)) return false;
+  if (String(APN_USER).length() > 0) {
+    if (!sendATOk(String(F("AT+SAPBR=3,1,\"USER\",\"")) + APN_USER + F("\""), 3000)) return false;
+  }
+  if (String(APN_PASS).length() > 0) {
+    if (!sendATOk(String(F("AT+SAPBR=3,1,\"PWD\",\"")) + APN_PASS + F("\""), 3000)) return false;
+  }
+
+  String openResp = sendATDebug(F("AT+SAPBR=1,1"), 12000);
+  if (openResp.indexOf(F("OK")) == -1 && openResp.indexOf(F("ALREADY CONNECT")) == -1) {
+    debugLine(F("Bearer nao abriu; a tentar reset forçado."));
+    sendATDebug(F("AT+SAPBR=0,1"), 5000);
+    delay(2000);
+    if (!sendATOk(F("AT+SAPBR=1,1"), 15000)) return false;
+  }
+
+  String status = sendATDebug(F("AT+SAPBR=2,1"), 3000);
+  bool hasIp = status.indexOf(F("0.0.0.0")) == -1 && status.indexOf(F("+SAPBR:")) != -1;
+  debugLine(hasIp ? F("GPRS ativo com IP valido.") : F("GPRS sem IP valido."));
+  return hasIp;
+}
+
+bool ensureGprsHttpsReady() {
+  if (!waitForNetworkRegistration()) return false;
+  if (!openGprsBearer(true)) return false;
+  sendATOk(F("AT+HTTPTERM"), 1000);
+  if (!sendATOk(F("AT+HTTPINIT"), 3000)) return false;
+  if (!sendATOk(F("AT+HTTPPARA=\"CID\",1"), 3000)) return false;
+  if (!sendATOk(F("AT+HTTPSSL=1"), 3000)) return false;
+  sendATOk(F("AT+HTTPTERM"), 1000);
+  debugLine(F("HTTPS preparado."));
+  return true;
+}
+
 bool gsmInit() {
   sim800.begin(9600);
   delay(3000);
 
-  sendAT("AT", 1000);
-  if (!waitFor("OK", 2000)) return false;
-
-  sendAT("ATE0", 1000);
-  waitFor("OK", 2000);
-  sendAT("AT+CPIN?", 1000);
-  waitFor("OK", 3000);
-  sendAT("AT+CREG?", 1000);
-  waitFor("OK", 3000);
-  sendAT("AT+SAPBR=3,1,\"CONTYPE\",\"GPRS\"", 1000);
-  waitFor("OK", 3000);
-  sendAT(String("AT+SAPBR=3,1,\"APN\",\"") + APN + "\"", 1000);
-  waitFor("OK", 3000);
-  sendAT("AT+SAPBR=1,1", 3000);
-  waitFor("OK", 8000);
-  sendAT("AT+SAPBR=2,1", 1500);
-  return waitFor("OK", 3000);
+  if (!sendATOk(F("AT"), 2000)) return false;
+  sendATOk(F("ATE0"), 2000);
+  sendATOk(F("AT+CMEE=2"), 2000);
+  sendATDebug(F("AT+CPIN?"), 3000);
+  sendATDebug(F("AT+COPS?"), 3000);
+  return ensureGprsHttpsReady();
 }
 
 String httpGET(const String& url) {
   while (sim800.available()) sim800.read();
 
-  sendAT("AT+HTTPTERM", 1000);
-  sendAT("AT+HTTPINIT", 1000);
-  if (!waitFor("OK", 3000)) return "";
+  if (!openGprsBearer(false)) {
+    debugLine(F("Bearer caiu antes do HTTP; a reinicializar GPRS/HTTPS."));
+    if (!ensureGprsHttpsReady()) return "";
+  }
 
-  sendAT("AT+HTTPPARA=\"CID\",1", 1000);
-  waitFor("OK", 3000);
-  sendAT("AT+HTTPSSL=1", 1000);
-  waitFor("OK", 3000);
-  sendAT(String("AT+HTTPPARA=\"URL\",\"") + url + "\"", 1000);
-  waitFor("OK", 3000);
+  sendATOk(F("AT+HTTPTERM"), 1000);
+  if (!sendATOk(F("AT+HTTPINIT"), 3000)) return "";
+  if (!sendATOk(F("AT+HTTPPARA=\"CID\",1"), 3000)) return "";
+  if (!sendATOk(F("AT+HTTPSSL=1"), 3000)) return "";
+  if (!sendATOk(String(F("AT+HTTPPARA=\"URL\",\"")) + url + F("\""), 5000)) return "";
 
   sim800.println("AT+HTTPACTION=0");
   if (!waitFor("+HTTPACTION:", 15000)) {
-    sendAT("AT+HTTPTERM", 1000);
+    sendATOk(F("AT+HTTPTERM"), 1000);
     return "";
   }
 
   sim800.println("AT+HTTPREAD");
   delay(1000);
   String body = readResponse(7000);
-  sendAT("AT+HTTPTERM", 1000);
+  sendATOk(F("AT+HTTPTERM"), 1000);
   return body;
 }
 
