@@ -3,6 +3,8 @@ const assert = require('node:assert/strict');
 const { toBool, relayPayload, isEmail, isStrongEnoughPassword } = require('../../backend/src/utils/validation');
 const { buildPullResponse } = require('../../backend/src/services/gsmService');
 const { onlineFromLastSeen, syncedState } = require('../../backend/src/utils/state');
+const { applyConfiguredDeviceIdentity } = require('../../backend/src/services/deviceSyncService');
+const { deviceKey, appName } = require('../../backend/src/config/env');
 
 test('toBool converts relay query values', () => {
   assert.equal(toBool('1'), true);
@@ -28,6 +30,15 @@ test('buildPullResponse returns SIM800 friendly body', () => {
   assert.match(body, /R1=1/);
   assert.match(body, /R2=0/);
   assert.match(body, /R3=1/);
+});
+
+
+test('device identity is reconciled from configured environment defaults', () => {
+  const device = { key: 'old-key', name: 'old-name' };
+  assert.equal(applyConfiguredDeviceIdentity(device), true);
+  assert.equal(device.key, deviceKey);
+  assert.equal(device.name, appName);
+  assert.equal(applyConfiguredDeviceIdentity(device), false);
 });
 
 test('device sync helpers detect online and synced states', () => {

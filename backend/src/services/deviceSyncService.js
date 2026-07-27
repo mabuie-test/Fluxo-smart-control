@@ -4,6 +4,22 @@ const { addLog } = require('./loggerService');
 const { onlineFromLastSeen, syncedState } = require('../utils/state');
 const { ensureEnergyFields, buildEnergySummary } = require('./energyService');
 
+function applyConfiguredDeviceIdentity(device) {
+  let changed = false;
+
+  if (device.key !== deviceKey) {
+    device.key = deviceKey;
+    changed = true;
+  }
+
+  if (device.name !== appName) {
+    device.name = appName;
+    changed = true;
+  }
+
+  return changed;
+}
+
 async function ensureDevice() {
   let device = await Device.findOne({ deviceId });
   if (!device) {
@@ -18,6 +34,12 @@ async function ensureDevice() {
     ensureEnergyFields(device);
     addLog(device, 'INIT', 'Dispositivo criado automaticamente.');
     await device.save();
+  } else {
+    ensureEnergyFields(device);
+    if (applyConfiguredDeviceIdentity(device)) {
+      addLog(device, 'CONFIG', 'Credenciais/nome sincronizados com as variáveis de ambiente.');
+      await device.save();
+    }
   }
   return device;
 }
@@ -39,4 +61,4 @@ function serializeDevice(device) {
   };
 }
 
-module.exports = { ensureDevice, onlineFromLastSeen, syncedState, serializeDevice };
+module.exports = { ensureDevice, applyConfiguredDeviceIdentity, onlineFromLastSeen, syncedState, serializeDevice };
