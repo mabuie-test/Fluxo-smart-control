@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { toBool, relayPayload, isEmail, isStrongEnoughPassword } = require('../../backend/src/utils/validation');
-const { buildPullResponse } = require('../../backend/src/services/gsmService');
+const { buildSyncResponse } = require('../../backend/src/services/gsmService');
 const { onlineFromLastSeen, syncedState } = require('../../backend/src/utils/state');
 
 test('toBool converts relay query values', () => {
@@ -22,12 +22,17 @@ test('auth validators reject malformed credentials', () => {
   assert.equal(isStrongEnoughPassword('123'), false);
 });
 
-test('buildPullResponse returns SIM800 friendly body', () => {
-  const body = buildPullResponse({ seq: 2, desired: { r1: true, r2: false, r3: true } });
-  assert.match(body, /SEQ=2/);
-  assert.match(body, /R1=1/);
-  assert.match(body, /R2=0/);
-  assert.match(body, /R3=1/);
+test('buildSyncResponse returns SIM800 friendly body', () => {
+  const device = { seq: 2, desired: { r1: true, r2: false, r3: true } };
+  const changedBody = buildSyncResponse(device, true);
+  assert.match(changedBody, /^OK/);
+  assert.match(changedBody, /SEQ=2/);
+  assert.match(changedBody, /R1=1/);
+  assert.match(changedBody, /R2=0/);
+  assert.match(changedBody, /R3=1/);
+
+  const unchangedBody = buildSyncResponse(device, false);
+  assert.match(unchangedBody, /^NONE/);
 });
 
 test('device sync helpers detect online and synced states', () => {
