@@ -18,6 +18,17 @@ async function ensureDevice() {
     ensureEnergyFields(device);
     addLog(device, 'INIT', 'Dispositivo criado automaticamente.');
     await device.save();
+    console.log(`[DEVICE] Dispositivo "${deviceId}" criado. Confirma que o firmware usa DEVICE_ID/DEVICE_KEY iguais.`);
+  } else if (device.key !== deviceKey) {
+    // Causa clássica de "o firmware não chega a lado nenhum": o backend foi
+    // reconfigurado (novo DEVICE_KEY no .env) mas o registo antigo na base
+    // de dados ficou com a chave anterior, e o firmware continua a usar uma
+    // das duas. Isto avisa alto no arranque em vez de falhar em silêncio.
+    console.warn('!'.repeat(70));
+    console.warn(`[AVISO] DEVICE_KEY no ambiente é diferente da chave gravada para "${deviceId}".`);
+    console.warn('        O firmware vai receber DENIED até isto ser corrigido.');
+    console.warn('        Ou atualiza a variável DEVICE_KEY, ou apaga o dispositivo na base de dados.');
+    console.warn('!'.repeat(70));
   }
   return device;
 }
